@@ -45,8 +45,8 @@ export default class WeightsGraph implements Visualization {
 			yBarWidth: 0.9,
 			xCenter: "50%",
 			legendLabel: "Weight",
-			//zMin: 0,
-			//zMax: 5,
+			zMin: -0.5,
+			//zMax: 1,
 			tooltip: (point: Point3d) => {
 				const [conn, outputLayer] = this.xyToConnection[
 					point.x + "," + point.y
@@ -105,24 +105,45 @@ export default class WeightsGraph implements Visualization {
 				) {
 					const conn = inN.outputs[outputNeuron];
 					const outN = conn.out;
-					layerX = (conn.weightVector!.length + 1) * outputNeuron;
-					maxx = Math.max(maxx, layerX + conn.weightVector!.length);
-					if (
-						!this.sim.state.bias &&
-						outN instanceof Net.InputNeuron &&
-						outN.constant
-					) {
-						continue;
-					}
-					for (
-						let timeDelayWeight = 0;
-						timeDelayWeight < conn.weightVector!.length;
-						timeDelayWeight++
-					) {
+					if (conn.weightVector != undefined) {
+						layerX = (conn.weightVector!.length + 1) * outputNeuron;
+						maxx = Math.max(
+							maxx,
+							layerX + conn.weightVector!.length
+						);
+						if (
+							!this.sim.state.bias &&
+							outN instanceof Net.InputNeuron &&
+							outN.constant
+						) {
+							continue;
+						}
+						for (
+							let timeDelayWeight = 0;
+							timeDelayWeight < conn.weightVector!.length;
+							timeDelayWeight++
+						) {
+							const p = {
+								x: layerX + timeDelayWeight,
+								y: layerY + inputNeuron,
+								z: conn.weightVector![timeDelayWeight],
+								style: conn.weightVector![timeDelayWeight]
+							};
+							if (maxHeight != layer.length)
+								p.y += (maxHeight - layer.length) / 2;
+							data.push(p);
+							this.xyToConnection[p.x + "," + p.y] = [
+								conn,
+								inputLayer
+							];
+						}
+					} else {
+						layerX = outputNeuron;
 						const p = {
-							x: layerX + timeDelayWeight,
+							x: layerX,
 							y: layerY + inputNeuron,
-							z: conn.weightVector![timeDelayWeight]
+							z: conn.weight,
+							style: conn.weight
 						};
 						if (maxHeight != layer.length)
 							p.y += (maxHeight - layer.length) / 2;
@@ -141,7 +162,7 @@ export default class WeightsGraph implements Visualization {
 	parseData(net: Net.NeuralNet) {
 		console.log(this.sim.tdnngraph.alreadySetNet);
 		if (net.isTDNN) {
-			let data1: Point3d[] = [{ x: 1, y: 1, z: 0 }];
+			let data1: Point3d[] = [{ x: 1, y: 1, z: 0, style: 0 }];
 			try {
 				data1 = this.parseDataTDNN(net);
 				console.log(data1);

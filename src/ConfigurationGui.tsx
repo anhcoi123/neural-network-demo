@@ -119,6 +119,16 @@ export default class ConfigurationGui extends React.Component<
 					) : (
 						""
 					)}
+					{conf.name == "Time Delayed Neural Network" ? (
+						<BSCheckbox
+							label="Disable Weight Sharing?"
+							id="disableWeightSharing"
+							onChange={loadConfig}
+							conf={conf}
+						/>
+					) : (
+						""
+					)}
 					<BSCheckbox
 						label="Show bias input"
 						id="bias"

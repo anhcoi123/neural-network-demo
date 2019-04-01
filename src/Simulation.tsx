@@ -60,13 +60,15 @@ export default class Simulation extends React.Component<
 	private lastTimestamp = 0;
 	/** current average error (see Net.NeuralNet#getLoss) */
 	averageError = 1;
-
+	testError = 1;
 	net!: Net.NeuralNet;
 	lrVis!: LRVis;
 	exportModal!: ExportModal;
 
 	/** list of [stepNum, averageError] elements */
 	errorHistory!: [number, number][];
+	/** list of [stepNum, averageError] elements */
+	testErrorHistory!: [number, number][];
 
 	/** data of the last training steps. first entry has .dataPoint set to undefined and contains the previous weights */
 	lastWeights!: Net.WeightsStep[];
@@ -90,7 +92,6 @@ export default class Simulation extends React.Component<
 		this.weightsGraph = new WeightsGraph(this);
 		this.state = this.deserializeFromUrl();
 	}
-
 	/** initialize a new random network */
 	initializeNet() {
 		if (this.net) this.stop();
@@ -100,6 +101,7 @@ export default class Simulation extends React.Component<
 			this.state.hiddenLayers,
 			this.state.outputLayer,
 			this.state.learningRate,
+			!this.state.disableWeightSharing,
 			this.state.name.indexOf("Time Delayed Neural Network") != -1
 				? [3, 5]
 				: undefined,
@@ -108,6 +110,7 @@ export default class Simulation extends React.Component<
 		);
 		this.stepsWanted = this.stepsCurrent = 0;
 		this.errorHistory = [];
+		this.testErrorHistory = [];
 		this.lastWeights = [];
 		this.currentTrainingDataPoint = -1;
 		if (
@@ -120,16 +123,17 @@ export default class Simulation extends React.Component<
 					.inputVector!
 			);
 		}
-		if (this.net.isTDNN) {
-			this.tdnngraph.container.hidden = false;
-			this.lrVis.leftVis.setMode(1);
-			this.netgraph.container.hidden = true;
-		} else {
-			this.tdnngraph.container.hidden = true;
-			this.lrVis.leftVis.setMode(0);
-			this.netgraph.container.hidden = false;
-		}
+		// if (this.net.isTDNN) {
+		// 	this.tdnngraph.container.hidden = false;
+		this.lrVis.leftVis.setMode(0);
+		// 	this.netgraph.container.hidden = true;
+		// } else {
+		// 	this.tdnngraph.container.hidden = true;
+		// 	this.lrVis.leftVis.setMode(0);
+		// 	this.netgraph.container.hidden = false;
+		// }
 		this.lrVis.leftVis.onNetworkLoaded(this.net);
+
 		this.lrVis.rightVis.onNetworkLoaded(this.net);
 		this.currentTrainingDataPoint = -1;
 		this.onFrame(true);
@@ -345,6 +349,7 @@ export default class Simulation extends React.Component<
 	/** calculate the average error ([[#averageError]]) */
 	calculateAverageError() {
 		this.averageError = 0;
+		this.testError = 0;
 		for (const val of this.state.data) {
 			if (!this.net.isTDNN) {
 				this.net.setInputsAndCalculate(val.input);
@@ -355,6 +360,21 @@ export default class Simulation extends React.Component<
 		}
 		this.averageError /= this.state.data.length;
 		this.errorHistory.push([this.stepsCurrent, this.averageError]);
+		if (this.state.testData) {
+			for (const val of this.state.testData) {
+				if (!this.net.isTDNN) {
+					this.net.setInputsAndCalculate(val.input);
+				} else {
+					this.net.setInputVectorsAndCalculate(val.inputVector!);
+				}
+				this.testError += this.net.getLoss(val.output);
+			}
+			this.testError /= this.state.testData.length;
+			this.testErrorHistory.push([this.stepsCurrent, this.testError]);
+		} else {
+			this.testError = this.averageError;
+			this.testErrorHistory = this.errorHistory;
+		}
 	}
 
 	/** update the information in the status line ([[#averageError]] / correct count and [[#stepNum]]) */
@@ -447,6 +467,9 @@ export default class Simulation extends React.Component<
 	componentDidUpdate(prevProps: any, oldConfig: Configuration) {
 		const co = oldConfig,
 			cn = this.state;
+		if (co.disableWeightSharing != cn.disableWeightSharing) {
+			this.initializeNet();
+		}
 		if (!cn.autoRestart) clearTimeout(this.restartTimeout);
 		const layerDifferent = (l1: any, l2: any) =>
 			l1.activation !== l2.activation ||

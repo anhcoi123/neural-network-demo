@@ -16,6 +16,7 @@ export interface Configuration {
 	/** inherit all properties from the preset with this name */
 	parent: string;
 	data: TrainingDataEx[];
+	testData: TrainingDataEx[] | null;
 	/** is a custom configuration or a preset */
 	custom: boolean;
 	inputLayer: InputLayerConfig;
@@ -46,6 +47,8 @@ export interface Configuration {
 	animationTrainSinglePoints: boolean;
 	/** show train single button. only used for neural network demo */
 	showTrainSingleButton: boolean;
+	/** if the network stop using WeightSharing. only used for time delayed neural network demo */
+	disableWeightSharing: boolean;
 	type: ConfigurationType;
 }
 

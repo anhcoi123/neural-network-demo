@@ -146,7 +146,11 @@ export default class TableEditor implements Visualization {
 				? sim.net.setInputVectorsAndCalculate(p.inputVector!)
 				: sim.net.getOutput(p.input);
 			for (let x = 0; x < op.length; x++) {
-				vals.push([y + this.headerCount, xOffset + x, op[x]]);
+				vals.push([
+					y + this.headerCount,
+					xOffset + x,
+					op[x] < 0.001 ? 0 : op[x]
+				]);
 			}
 		}
 		this.hot.setDataAtCell(vals, "loadData");
