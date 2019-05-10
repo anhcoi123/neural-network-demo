@@ -88,6 +88,13 @@ export namespace Net {
 				return 1 - x * x;
 			}
 		},
+		sine: {
+			f: x => Math.sin(x as number),
+			df: x => {
+				x = Math.cos(x as number);
+				return x;
+			}
+		},
 		linear: {
 			f: x => x,
 			df: x => 1
@@ -314,8 +321,8 @@ export namespace Net {
 						output.names[i]
 					)
 			);
-			console.log("Weight sharing");
-			console.log(this.weightSharing);
+			// console.log("Weight sharing");
+			// console.log(this.weightSharing);
 			this.layers.push(this.outputs);
 			for (let i = 0; i < this.layers.length - 1; i++) {
 				const inLayer = this.layers[i];
@@ -600,7 +607,7 @@ export namespace Net {
 				for (let time = 0; time < this.inp.outputVector!.length; time++) {
 					sum+=this.inp.outputVector![time];
 				}
-				this.deltaWeight = learnRate * this.out.error*sum/this.inp.outputVector!.length;
+				this.deltaWeight = learnRate * this.out.error*sum;///this.inp.outputVector!.length;
 				this.velocity = this.momentum*this.velocity+this.deltaWeight;
 				// for (let time = 0; time < this.weightVector!.length; time++) {
 				// 	var tmp = 0;
@@ -899,24 +906,14 @@ export namespace Net {
 							if (outputIndexOfNextLayer >= 0) {
 								if (tmpδVector[outputVectorIndex] == undefined)
 									tmpδVector[outputVectorIndex] = 0;
-								// console.log("outputNeuronError " + outputNeuron.errorVector[outputIndexOfNextLayer]);
-								// console.log("+++++++++weightVector index : " + (outputVectorIndex-outputIndexOfNextLayer));
-								// console.log("---Weight vector " + conn.weightVector![outputVectorIndex-outputIndexOfNextLayer]);
 								tmpδVector[outputVectorIndex] += outputNeuron.errorVector[outputIndexOfNextLayer] * conn.weightVector![outputVectorIndex - outputIndexOfNextLayer];
-								// console.log("-------------TmpDelta Vector 2 - " + tmpδVector[outputVectorIndex]);
 							}
 						}
 					}
 					this.errorVector[outputVectorIndex] =
 						tmpδVector[outputVectorIndex] * (NonLinearities[this.activation].df(this.weightedInputsVector[outputVectorIndex]) as number);
 				}
-				// console.log(this.errorVector);
-				// for (const output of this.outputs) {
-				// 	δ += output.out.error * output.weight;
-				// }
 			}
-			// this.error =
-			// 	δ * NonLinearities[this.activation].df(this.weightedInputs);
 		}
 	}
 }
