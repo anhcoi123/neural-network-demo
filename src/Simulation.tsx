@@ -601,60 +601,77 @@ export default class Simulation extends React.Component<
 	 */
 	render() {
 		const pageTitle =
-			this.state.type === "perceptron"
-				? "Perceptron demo"
-				: "Neural Network demo";
-		const presetName = this.state.custom
-			? " Custom Network"
-			: " Preset: " + this.state.name;
+			this.state.name === "Time Delayed Neural Network"
+				? this.state.name
+				: this.state.type === "perceptron"
+					? "Perceptron demo"
+					: "Neural Network demo";
+		const presetName =
+			this.state.name === "Time Delayed Neural Network"
+				? "Simple Data"
+				: this.state.custom
+					? " Custom Network"
+					: " Preset: " + this.state.name;
 		document.title = `${pageTitle} — ${presetName}`;
 		return (
 			<div>
 				<div className="container">
 					<div className="page-header">
-						<div
-							className="btn-toolbar pull-right dropdown"
-							style={{ marginTop: "5px" }}
-						>
-							<button
-								className="btn btn-info dropdown-toggle"
-								data-toggle="dropdown"
+						{this.state.type === "nn" &&
+						this.state.name.indexOf(
+							"Time Delayed Neural Network"
+						) != -1 ? (
+							""
+						) : (
+							<div
+								className="btn-toolbar pull-right dropdown"
+								style={{ marginTop: "5px" }}
 							>
-								{"Load Preset "}
-								<span className="caret" />
-							</button>
-							<ul className="dropdown-menu">
-								<li className="dropdown-header">
-									Neural Network
-								</li>
-								{Presets.getNames().map(name => {
-									const ele = (
-										<li key={name}>
-											<a
-												onClick={e =>
-													this.setState(
-														Presets.get(name)
-													)
-												}
-											>
-												{name}
-											</a>
-										</li>
-									);
-									if (name === "Rosenblatt Perceptron")
-										return (
-											<React.Fragment key={name}>
-												<li className="divider" />
-												<li className="dropdown-header">
-													Perceptron
-												</li>
-												{ele}
-											</React.Fragment>
+								<button
+									className="btn btn-info dropdown-toggle"
+									data-toggle="dropdown"
+								>
+									{"Load Preset "}
+									<span className="caret" />
+								</button>
+								<ul className="dropdown-menu">
+									<li className="dropdown-header">
+										Neural Network
+									</li>
+									{Presets.getNames().map(name => {
+										const ele = (
+											<li key={name}>
+												<a
+													onClick={e =>
+														this.setState(
+															Presets.get(name)
+														)
+													}
+												>
+													{name}
+												</a>
+											</li>
 										);
-									else return ele;
-								})}
-							</ul>
-						</div>
+										if (
+											name ===
+											"Time Delayed Neural Network"
+										)
+											return "";
+										if (name === "Rosenblatt Perceptron")
+											return (
+												<React.Fragment key={name}>
+													<li className="divider" />
+													<li className="dropdown-header">
+														Perceptron
+													</li>
+													{ele}
+												</React.Fragment>
+											);
+										else return ele;
+									})}
+								</ul>
+							</div>
+						)}
 						<h1>
 							{pageTitle}
 							<small>{presetName}</small>
@@ -687,7 +704,7 @@ export default class Simulation extends React.Component<
 						</div>
 					</div>
 					<footer className="small">
-						<a href="https://github.com/phiresky/neural-network-demo/">
+						<a href="https://github.com/anhcoi123/neural-network-demo/">
 							Source on GitHub
 						</a>
 					</footer>

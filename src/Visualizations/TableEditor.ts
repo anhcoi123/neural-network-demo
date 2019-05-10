@@ -28,6 +28,7 @@ export default class TableEditor implements Visualization {
 		this.reparseData();
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
+		if (net.isTDNN) this.actions = ["Output"];
 		if (this.hot) this.hot.destroy();
 		const oldContainer = this.container;
 		this.container = $(

@@ -223,12 +223,18 @@ export default class WeightsGraph implements Visualization {
 		return data;
 	}
 	onNetworkLoaded(net: Net.NeuralNet) {
-		if (this.sim.state.type == "perceptron") this.actions = [];
-		else this.actions = ["Weights"];
+		if (
+			this.sim.state.type == "perceptron" ||
+			!this.sim.net.weightSharing
+		) {
+			this.actions = [];
+			return;
+		} else this.actions = ["Weights"];
 		this.xyToConnection = {};
 		this.graph.setData(this.parseData(net));
 	}
 	onFrame() {
+		if (this.actions == []) return;
 		this.xyToConnection = {};
 		this.graph.redraw();
 		this.graph.setData(this.parseData(this.sim.net));
