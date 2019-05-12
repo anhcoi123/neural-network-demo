@@ -16,21 +16,26 @@ interface Point3d {
  * hidden when in perceptron mode because then it's pretty boring
  */
 export default class WeightsGraph implements Visualization {
+	default_redrawBarSizeGraphPoint: any;
 	actions = ["Weights"];
 	container = document.createElement("div");
-	offsetBetweenLayers = 2;
+	offsetBetweenLayers = 1;
 	graph: any; //vis.Graph3d;
 	xyToConnection: { [xcommay: string]: [Net.NeuronConnection, int] } = {};
 	constructor(public sim: Simulation) {
+		// Save default _redrawBarSizeGraphPoint method for later use
+		this.default_redrawBarSizeGraphPoint =
+			vis.Graph3d.prototype._redrawBarSizeGraphPoint;
 		// hack to get grayscale colors
 		vis.Graph3d.prototype._hsv2rgb = (h: double, s: double, v: double) => {
 			h = Math.min(h, 250) | 0;
 			return "rgb(" + [h, h, h] + ")";
 		};
+		console.log("Create graph");
 		// hack to disable axis drawing
 		vis.Graph3d.prototype._redrawAxis = function() {};
 		this.graph = new vis.Graph3d(this.container, undefined, {
-			style: "bar",
+			style: "bar-size",
 			showPerspective: false,
 			cameraPosition: { horizontal: -0.001, vertical: Math.PI / 2 },
 			width: "100%",
@@ -38,15 +43,15 @@ export default class WeightsGraph implements Visualization {
 			xLabel: "Layer",
 			yLabel: "Neuron",
 			zLabel: "",
-			zStep: 0.1,
+			//zStep: 0.1,
 			showGrid: true,
 			axisColor: "red",
-			xBarWidth: 0.9,
-			yBarWidth: 0.9,
+			xBarWidth: 1, //0.9,
+			yBarWidth: 1, //0.9,
 			xCenter: "50%",
 			legendLabel: "Weight",
 			zMin: -0.5,
-			//zMax: 1,
+			zMax: 0.5,
 			tooltip: (point: Point3d) => {
 				const [conn, outputLayer] = this.xyToConnection[
 					point.x + "," + point.y
@@ -68,6 +73,31 @@ export default class WeightsGraph implements Visualization {
 			zValueLabel: (z: int) => ""
 		});
 	}
+	// Hack redrawBar to draw matrix for TDNN Weight Matrix
+	_redrawBarSizeGraphPoint = (ctx: any, point: any) => {
+		// calculate size for the bar
+		var fraction =
+			(Math.abs(point.point.z) - this.graph.valueRange.min) /
+			this.graph.valueRange.range();
+		var xWidth = (this.graph.xBarWidth / 2) * (fraction * 0.8 + 0.2);
+		var yWidth = (this.graph.yBarWidth / 2) * (fraction * 0.8 + 0.2);
+
+		var hueBlack = 255;
+		var hueWhite = 0;
+		var colors =
+			point.point.z < 0
+				? "rgb(" + [hueBlack, hueBlack, hueBlack] + ")"
+				: "rgb(" + [hueWhite, hueWhite, hueWhite] + ")";
+
+		this.graph._redrawBar(
+			ctx,
+			point,
+			xWidth,
+			yWidth,
+			colors,
+			this.graph.dataColor.stroke
+		);
+	};
 	onView(previouslyHidden: boolean, action: int) {
 		this.graph.redraw();
 	}
@@ -84,7 +114,7 @@ export default class WeightsGraph implements Visualization {
 		);
 		for (
 			let inputLayer = 0;
-			inputLayer < net.layers.length - 1;
+			inputLayer < net.layers.length - 2;
 			inputLayer++
 		) {
 			const layer = net.layers[inputLayer];
@@ -97,7 +127,7 @@ export default class WeightsGraph implements Visualization {
 			) {
 				let layerX = 0;
 				const inN = layer[inputNeuron];
-				maxy = Math.max(maxy, layerY + layer.length);
+				maxy = Math.max(maxy, layerY + layer.length - 2);
 				for (
 					let outputNeuron = 0;
 					outputNeuron < inN.outputs.length;
@@ -162,6 +192,12 @@ export default class WeightsGraph implements Visualization {
 	parseData(net: Net.NeuralNet) {
 		console.log(this.sim.tdnngraph.alreadySetNet);
 		if (net.isTDNN) {
+			// Switch to weightMatrix for TDNN
+			var options = {
+				style: "bar-size"
+			};
+			vis.Graph3d.prototype._redrawBarSizeGraphPoint = this._redrawBarSizeGraphPoint;
+			this.graph.setOptions(options);
 			let data1: Point3d[] = [{ x: 1, y: 1, z: 0, style: 0 }];
 			try {
 				data1 = this.parseDataTDNN(net);
@@ -172,7 +208,12 @@ export default class WeightsGraph implements Visualization {
 				return data1;
 			}
 		}
-
+		// Switch to normal weightMatrix
+		vis.Graph3d.prototype._redrawBarSizeGraphPoint = this.default_redrawBarSizeGraphPoint;
+		var options = {
+			style: "bar"
+		};
+		this.graph.setOptions(options);
 		this.xyToConnection = {};
 		const data: Point3d[] = [];
 		let maxx = 0;

@@ -300,7 +300,7 @@ export namespace Net {
 					makeArray(
 						layer.neuronCount,
 						i =>
-							timeDelayed != undefined
+							timeDelayed != undefined && weightSharing
 								? new TimeDelayedNeuron(
 										layer.activation,
 										nid++,
@@ -331,6 +331,7 @@ export namespace Net {
 					inLayer.push(new InputNeuron(nid++, -1, "Bias", 1));
 				// If next layer is Output
 				if (
+					weightSharing &&
 					timeDelayed != undefined &&
 					outLayer[0] instanceof OutputNeuron
 				) {
@@ -358,7 +359,7 @@ export namespace Net {
 				if (timeDelayed == undefined)
 					this.biases[i] = inLayer.pop() as InputNeuron;
 			}
-			if (timeDelayed == undefined)
+			if (timeDelayed == undefined || !weightSharing) // if not TDNN or weightSharing is disabled
 			{
 				this.connections.map(x => x.momentum=0);
 			}
@@ -381,48 +382,66 @@ export namespace Net {
 		initTDNN(inputVals: double[][]) {
 			for (let i = 0; i < this.inputs.length; i++)
 				this.inputs[i].outputVector = inputVals[i];
-			for (const layer of this.layers.slice(1))
-				for (const neuron of layer) {
+			if (this.weightSharing){
+				for (const layer of this.layers.slice(1))
+					for (const neuron of layer) {
+						for (const conn of neuron.inputs) {
+							for (
+								var i = 0;
+								i <=
+								conn.inp.outputVector.length - neuron.timeDelayed;
+								i++
+							) {
+								neuron.outputVector[i] = 0;
+							}
+							if (!conn.weightVector && !(conn.out instanceof OutputNeuron)) {
+								conn.weightVector = [];
+								for (let i = 0; i < (conn.weightSharing==true?conn.out.timeDelayed:conn.inp.outputVector.length); i++)
+									if (conn.weightVector[i] == null)
+									{
+										conn.weightVector[i] = Math.random() - 0.5;
+									}
+							}
+							if (conn.out instanceof OutputNeuron)
+							{
+								conn.weight = Math.random()-0.5;
+							}
+							/* Another weight init
+							if (!conn.weightVector && !(conn.out instanceof OutputNeuron)) {
+								console.log("Create weightVector");
+								conn.weightVector = [];
+								for (let i = 0; i < (conn.weightSharing==true?conn.out.timeDelayed:conn.inp.outputVector.length); i++)
+									if (conn.weightVector[i] == null)
+									{
+										let max=this.layers[this.layers.indexOf(layer)-1].length;//[0].outputVector.length;
+										//let min=max-layer[0].timeDelayed;
+										conn.weightVector[i] = Math.random() * Math.sqrt(2/max);//(+max - +min) + +min;//- 0.5;
+									}
+							}
+							if (conn.out instanceof OutputNeuron)
+							{
+								conn.weight = Math.random()*Math.sqrt(2/this.layers[this.layers.indexOf(layer)-1].length);
+							}
+							*/
+						}	
+					}
+			}else{
+				for (const neuron of this.layers[1]) { //first hidden layer
 					for (const conn of neuron.inputs) {
-						for (
-							var i = 0;
-							i <=
-							conn.inp.outputVector.length - neuron.timeDelayed;
-							i++
-						) {
-							neuron.outputVector[i] = 0;
-						}
-						if (!conn.weightVector && !(conn.out instanceof OutputNeuron)) {
+						// for (var i = 0;i <= conn.inp.outputVector.length;i++) {
+						// 	neuron.outputVector[i] = 0;
+						// }
+						if (!conn.weightVector) {
 							conn.weightVector = [];
-							for (let i = 0; i < (conn.weightSharing==true?conn.out.timeDelayed:conn.inp.outputVector.length); i++)
+							for (let i = 0; i < conn.inp.outputVector.length; i++)
 								if (conn.weightVector[i] == null)
 								{
 									conn.weightVector[i] = Math.random() - 0.5;
 								}
 						}
-						if (conn.out instanceof OutputNeuron)
-						{
-							conn.weight = Math.random()-0.5;
-						}
-						/* Another weight init
-						if (!conn.weightVector && !(conn.out instanceof OutputNeuron)) {
-							console.log("Create weightVector");
-							conn.weightVector = [];
-							for (let i = 0; i < (conn.weightSharing==true?conn.out.timeDelayed:conn.inp.outputVector.length); i++)
-								if (conn.weightVector[i] == null)
-								{
-									let max=this.layers[this.layers.indexOf(layer)-1].length;//[0].outputVector.length;
-									//let min=max-layer[0].timeDelayed;
-									conn.weightVector[i] = Math.random() * Math.sqrt(2/max);//(+max - +min) + +min;//- 0.5;
-								}
-						}
-						if (conn.out instanceof OutputNeuron)
-						{
-							conn.weight = Math.random()*Math.sqrt(2/this.layers[this.layers.indexOf(layer)-1].length);
-						}
-						*/
-					}	
+					}
 				}
+			}
 			// for (let i = 0; i < this.inputs.length; i++)
 			// 	this.inputs[i].outputVector = inputVals[i];
 		}
@@ -441,30 +460,41 @@ export namespace Net {
 			const lastHiddenLayer = this.layers[this.layers.length - 2];
 			const outputLayer = this.outputs;
 			let weightedOutputArray=[];
-			if (outputLayer[0].activation=='softmax')
-			{
-				for (let neuron of lastHiddenLayer) {
-					let sum=0;
-					for (let output of neuron.outputVector)
-					{
-						sum+=output;
+			if (outputLayer[0].activation=='softmax'){
+				if (this.weightSharing){ // With WeightSharing
+					for (let neuron of lastHiddenLayer) {
+						let sum=0;
+						for (let output of neuron.outputVector)
+						{
+							sum+=output;
+						}
+						weightedOutputArray.push(sum*neuron.outputs[0].weight);
 					}
-					weightedOutputArray.push(sum*neuron.outputs[0].weight);
+				}else{ // With disabled WeightSharing
+					for(let neuron of outputLayer){
+						let tmpOutput=0.0;
+						for (let conn of neuron.inputs){
+							tmpOutput+=conn.weight*conn.inp.output;
+						}
+						weightedOutputArray.push(tmpOutput);
+					}
 				}
 				let outputs=NonLinearities['softmax'].f(weightedOutputArray) as number[];
-				for (let i =0;i<outputs.length;i++)
-				{
+				for (let i =0;i<outputs.length;i++){
 					this.outputs[i].output=outputs[i];
 				}
 			}else{
 				for (let neuron of outputLayer) {
 					//Get output for Output neuron
-					neuron.calculateOutputTDNN(
-						lastHiddenLayer[outputLayer.indexOf(neuron)].outputVector
-					);
+					if (this.weightSharing)
+						neuron.calculateOutputTDNN(
+							lastHiddenLayer[outputLayer.indexOf(neuron)].outputVector
+						);
+					else
+						neuron.calculateOutput();
 				}
 			}
-			this.outputs.map(output => output.output);
+			//this.outputs.map(output => output.output);
 			return this.outputs.map(output => output.output);
 		}
 		getOutput(inputVals: double[]) {
@@ -632,11 +662,27 @@ export namespace Net {
 				// }
 
 				// console.log(this.deltaWeightVector);
-			} else
-			{
-				this.deltaWeight +=
+			} else {
+				if (this.weightVector != undefined){
+					for (var time = 0; time < this.inp.outputVector.length; time++) { // deltaWeight for each time step
+						var tmp1 = 0;
+						if (this.deltaWeightVector[time] == null)
+							this.deltaWeightVector[time] = 0;
+						if (this.velocityVector[time] == null)
+							this.velocityVector[time] = 0;
+						tmp1 =
+							learnRate *
+							this.out.error *
+							this.inp.outputVector![time];
+						this.deltaWeightVector[time] = tmp1;
+						this.velocityVector[time] = this.momentum * this.velocityVector[time] + this.deltaWeightVector[time];
+						//tmp+=learnRate*this.out.errorVector[outputNeuronIndex]*this.inp.outputVector![outputNeuronIndex+time];
+					}
+				}else{
+					this.deltaWeight +=
 					learnRate * this.out.error * this.inp.output;
-				this.velocity = this.momentum*this.velocity+this.deltaWeight;
+					this.velocity = this.momentum*this.velocity+this.deltaWeight;
+				}
 			}
 		}
 		flushDeltaWeight() {
@@ -645,12 +691,22 @@ export namespace Net {
 				// console.log(this.weightVector);
 				// console.log("---Deltaweight Vector---");
 				// console.log(this.deltaWeightVector);
-				for (
-					var time = 0;
-					time < this.out.timeDelayed;
-					time++ // deltaWeight for each time step
-				) {
-					this.weightVector![time] += this.velocityVector[time]; //this.deltaWeightVector[time];
+				if (this.weightSharing){ // TDNN With weightsharing
+					for (
+						var time = 0;
+						time < this.out.timeDelayed;
+						time++ // deltaWeight for each time step
+					) {
+						this.weightVector![time] += this.velocityVector[time]; //this.deltaWeightVector[time];
+					}
+				}else{
+					for (
+						var time = 0;
+						time < this.inp.outputVector.length;
+						time++ // deltaWeight for each time step
+					) {
+						this.weightVector![time] += this.velocityVector[time]; //this.deltaWeightVector[time];
+					}
 				}
 				this.deltaWeightVector = [];
 				// console.log("After updated weight");
@@ -684,7 +740,19 @@ export namespace Net {
 		calculateWeightedInputs() {
 			this.weightedInputs = 0.0;
 			for (const conn of this.inputs) {
-				this.weightedInputs += conn.inp.output * conn.weight;
+				if (!conn.weightSharing && conn.weightVector==undefined) // Normal Network
+					this.weightedInputs += conn.inp.output * conn.weight;
+				else{
+					// TDNN Network with disabled weightSharing - neurons of first hidden layer
+					if (conn.weightVector!=undefined)
+					{
+						for (var i=0;i<conn.weightVector!.length;i++){
+							this.weightedInputs+=conn.inp.outputVector[i]*conn.weightVector![i];
+						}
+					}else{
+						this.weightedInputs += conn.inp.output * conn.weight;
+					}
+				}
 			}
 		}
 		calculateOutput() {
