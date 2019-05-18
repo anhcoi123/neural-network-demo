@@ -109,7 +109,12 @@ class ControlButtonBar extends React.Component<
 				) : (
 					""
 				)}&nbsp;
-				{sim.state.type === "nn" ? (
+				{(sim.state.type === "nn" &&
+					sim.state.disableWeightSharing === undefined) ||
+				(sim.state.type === "nn" &&
+					!sim.state.disableWeightSharing &&
+					sim.state.name.indexOf("Time Delayed Neural Network") !=
+						-1) ? (
 					<button
 						className="btn btn-default"
 						onClick={sim.forwardPassStep.bind(sim)}
@@ -120,6 +125,7 @@ class ControlButtonBar extends React.Component<
 					""
 				)}&nbsp;
 				{sim.state.type === "nn" &&
+				!sim.state.disableWeightSharing &&
 				sim.state.name.indexOf("Time Delayed Neural Network") != -1 ? (
 					<button
 						className="btn btn-default"

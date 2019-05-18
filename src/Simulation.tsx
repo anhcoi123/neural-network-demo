@@ -467,7 +467,11 @@ export default class Simulation extends React.Component<
 	componentDidUpdate(prevProps: any, oldConfig: Configuration) {
 		const co = oldConfig,
 			cn = this.state;
-		if (co.disableWeightSharing != cn.disableWeightSharing) {
+		if (
+			co.disableWeightSharing != cn.disableWeightSharing ||
+			(cn.name.indexOf("Time Delayed Neural Network") != -1 &&
+				cn.name != co.name)
+		) {
 			this.initializeNet();
 		}
 		if (!cn.autoRestart) clearTimeout(this.restartTimeout);
@@ -601,13 +605,13 @@ export default class Simulation extends React.Component<
 	 */
 	render() {
 		const pageTitle =
-			this.state.name === "Time Delayed Neural Network"
+			this.state.name.indexOf("Time Delayed Neural Network") != -1
 				? this.state.name
 				: this.state.type === "perceptron"
 					? "Perceptron demo"
 					: "Neural Network demo";
 		const presetName =
-			this.state.name === "Time Delayed Neural Network"
+			this.state.name.indexOf("Time Delayed Neural Network") != -1
 				? "Simple Data"
 				: this.state.custom
 					? " Custom Network"
@@ -617,44 +621,53 @@ export default class Simulation extends React.Component<
 			<div>
 				<div className="container">
 					<div className="page-header">
-						{this.state.type === "nn" &&
-						this.state.name.indexOf(
-							"Time Delayed Neural Network"
-						) != -1 ? (
-							""
-						) : (
-							<div
-								className="btn-toolbar pull-right dropdown"
-								style={{ marginTop: "5px" }}
+						<div
+							className="btn-toolbar pull-right dropdown"
+							style={{ marginTop: "5px" }}
+						>
+							<button
+								className="btn btn-info dropdown-toggle"
+								data-toggle="dropdown"
 							>
-								<button
-									className="btn btn-info dropdown-toggle"
-									data-toggle="dropdown"
-								>
-									{"Load Preset "}
-									<span className="caret" />
-								</button>
-								<ul className="dropdown-menu">
-									<li className="dropdown-header">
-										Neural Network
-									</li>
-									{Presets.getNames().map(name => {
-										const ele = (
-											<li key={name}>
-												<a
-													onClick={e =>
-														this.setState(
-															Presets.get(name)
-														)
-													}
-												>
-													{name}
-												</a>
-											</li>
-										);
-										if (
-											name ===
+								{"Load Preset "}
+								<span className="caret" />
+							</button>
+							<ul className="dropdown-menu">
+								<li className="dropdown-header">
+									Neural Network
+								</li>
+								{Presets.getNames().map(name => {
+									const ele = (
+										<li key={name}>
+											<a
+												onClick={e =>
+													this.setState(
+														Presets.get(name)
+													)
+												}
+											>
+												{name}
+											</a>
+										</li>
+									);
+									if (
+										this.state.type === "nn" &&
+										this.state.name.indexOf(
 											"Time Delayed Neural Network"
+										) != -1
+									) {
+										if (
+											name.indexOf(
+												"Time Delayed Neural Network"
+											) != -1
+										)
+											return ele;
+										else return "";
+									} else {
+										if (
+											name.indexOf(
+												"Time Delayed Neural Network"
+											) != -1
 										)
 											return "";
 										if (name === "Rosenblatt Perceptron")
@@ -668,10 +681,10 @@ export default class Simulation extends React.Component<
 												</React.Fragment>
 											);
 										else return ele;
-									})}
-								</ul>
-							</div>
-						)}
+									}
+								})}
+							</ul>
+						</div>
 						<h1>
 							{pageTitle}
 							<small>{presetName}</small>

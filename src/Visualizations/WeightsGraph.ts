@@ -190,7 +190,7 @@ export default class WeightsGraph implements Visualization {
 	}
 	/** parse network layout into weights graph ordering */
 	parseData(net: Net.NeuralNet) {
-		console.log(this.sim.tdnngraph.alreadySetNet);
+		// console.log(this.sim.tdnngraph.alreadySetNet);
 		if (net.isTDNN) {
 			// Switch to weightMatrix for TDNN
 			var options = {
@@ -201,10 +201,10 @@ export default class WeightsGraph implements Visualization {
 			let data1: Point3d[] = [{ x: 1, y: 1, z: 0, style: 0 }];
 			try {
 				data1 = this.parseDataTDNN(net);
-				console.log(data1);
+				// console.log(data1);
 				return data1;
 			} catch {
-				console.log(data1);
+				// console.log(data1);
 				return data1;
 			}
 		}

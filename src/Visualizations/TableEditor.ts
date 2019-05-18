@@ -53,7 +53,7 @@ export default class TableEditor implements Visualization {
 		const mergeCells: {}[] = [];
 		const ic = net.isTDNN ? 0 : net.inputs.length,
 			oc = net.outputs.length;
-		console.log(ic);
+		// console.log(ic);
 		//console.log(`creating new table (${ic}, ${oc})`);
 		if (ic > 1)
 			mergeCells.push({ row: 0, col: 0, rowspan: 1, colspan: ic });
@@ -167,7 +167,7 @@ export default class TableEditor implements Visualization {
 		];
 		const ic = sim.net.isTDNN ? 0 : sim.state.inputLayer.neuronCount,
 			oc = sim.state.outputLayer.neuronCount;
-		console.log(ic);
+		// console.log(ic);
 		data[0][0] = "Inputs";
 		data[0][ic] = "Expected Output";
 		data[0][ic + oc + oc - 1] = " ";
