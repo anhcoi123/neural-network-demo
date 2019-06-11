@@ -43,6 +43,7 @@ export default class TDNNGraph implements Visualization {
 	currentlyDisplayingForwardPass = false;
 	biasBeforeForwardPass = false;
 
+	isDisabledWeightSharing=false;
 	alreadySetNet = false;
 	offsetBetweenLayers = 2;
 	xyToConnectionTDNN: { [xcommay: string]: [int, int, double] } = {};
@@ -210,79 +211,124 @@ export default class TDNNGraph implements Visualization {
 		// console.log("ApplyUpdate");
 		this.graph.off("afterDrawing");
 		this.graph.redraw();
-		// console.log(update.nodes);
 		if (this.next != 0) {
-			// let x1 = update.nodes[0].x - 30;
-			// let y2 = update.nodes[update.nodes.length - 1].y - 30;
-			// let h1 = 50 * update.numberofneuron! + 5; //update.nodes[0].y+30;
-			// let previousLayer = this.updates[update.previousIndex!];
-			// let isOutputLayer =
-			// 	this.net.layers[update.layerNumber!][0] instanceof
-			// 	Net.OutputNeuron;
-			let x1,
-				y2,
-				h1,
-				px1 = 0,
-				py2 = 0,
-				timeDelayed = 0,
-				width = 0,
-				height = 0;
 			var thisVar = this;
-			if (update.layerNumber != 0 && !this.showOutput)
+			if (this.net.weightSharing){
+				// let x1 = update.nodes[0].x - 30;
+				// let y2 = update.nodes[update.nodes.length - 1].y - 30;
+				// let h1 = 50 * update.numberofneuron! + 5; //update.nodes[0].y+30;
+				// let previousLayer = this.updates[update.previousIndex!];
+				// let isOutputLayer =
+				// 	this.net.layers[update.layerNumber!][0] instanceof
+				// 	Net.OutputNeuron;
+				let x1,
+					y2,
+					h1,
+					px1 = 0,
+					py2 = 0,
+					timeDelayed = 0,
+					width = 0,
+					height = 0;
+				if (update.layerNumber != 0 && !this.showOutput){
+					this.graph.on("afterDrawing", function(ctx: any) {
+						ctx.lineWidth = "6";
+						ctx.strokeStyle = "red";
+						for (var layer in update.layersUpdate) {
+							x1 = update.layersUpdate[layer].maxX - 30;
+							y2 = thisVar.minYofLayer[layer] - 30;
+							h1 = 50 * update.layersUpdate[layer].numberofNeuron + 5; //update.nodes[0].y+30;
+							if (
+								!(
+									thisVar.net.layers[layer][0] instanceof
+									Net.OutputNeuron
+								)
+							) {
+								px1 = x1;
+								py2 = thisVar.minYofLayer[Number(layer) - 1] - 30;
+								timeDelayed =
+									update.layersUpdate[layer].timeDelayed;
+								height =
+									50 *
+										thisVar.net.layers[Number(layer) - 1]
+											.length +
+									5;
+							} else {
+								px1 = -30;
+								py2 = thisVar.minYofLayer[Number(layer) - 1] + x1;
+								timeDelayed =
+									thisVar.net.layers[Number(layer) - 1][0]
+										.outputVector.length;
+								height = 55;
+							}
+							width = 50 * timeDelayed + 5;
+							ctx.rect(x1, y2, 55, h1);
+							ctx.stroke();
+							ctx.rect(px1, py2, width!, height!);
+							ctx.stroke();
+							ctx.beginPath();
+							ctx.moveTo(x1, y2 + h1);
+							ctx.lineTo(px1, py2);
+							ctx.moveTo(x1 + 55, y2 + h1);
+							ctx.lineTo(px1 + width!, py2);
+							ctx.stroke();
+						}
+						// ctx.rect(x1, y2, 55, h1);
+						// ctx.stroke();
+						// ctx.rect(px1, py2, width!, height!);
+						// ctx.stroke();
+						// ctx.beginPath();
+						// ctx.moveTo(x1, y2 + h1);
+						// ctx.lineTo(px1, py2);
+						// ctx.moveTo(x1 + 55, y2 + h1);
+						// ctx.lineTo(px1 + width!, py2);
+						// ctx.stroke();
+					});
+				}
+			} else{
+				//console.log(this.minYofLayer);
 				this.graph.on("afterDrawing", function(ctx: any) {
 					ctx.lineWidth = "6";
 					ctx.strokeStyle = "red";
-					for (var layer in update.layersUpdate) {
-						x1 = update.layersUpdate[layer].maxX - 30;
-						y2 = thisVar.minYofLayer[layer] - 30;
-						h1 = 50 * update.layersUpdate[layer].numberofNeuron + 5; //update.nodes[0].y+30;
-						if (
-							!(
-								thisVar.net.layers[layer][0] instanceof
-								Net.OutputNeuron
-							)
-						) {
-							px1 = x1;
-							py2 = thisVar.minYofLayer[Number(layer) - 1] - 30;
-							timeDelayed =
-								update.layersUpdate[layer].timeDelayed;
-							height =
-								50 *
-									thisVar.net.layers[Number(layer) - 1]
-										.length +
-								5;
-						} else {
-							px1 = -30;
-							py2 = thisVar.minYofLayer[Number(layer) - 1] + x1;
-							timeDelayed =
-								thisVar.net.layers[Number(layer) - 1][0]
-									.outputVector.length;
-							height = 55;
+					var lastW=undefined;
+					var lastY=undefined;
+					for (let layer=0;layer<thisVar.net.layers.length;layer++)
+					{
+						var x = -30;
+						var y = thisVar.minYofLayer[layer]-30;
+						var h = thisVar.net.layers[layer][0] instanceof Net.InputNeuron?50 * thisVar.net.layers[layer].length + 5:55;
+						var w = thisVar.net.layers[layer][0] instanceof Net.InputNeuron?50 * thisVar.net.layers[layer][0].outputVector!.length + 5:thisVar.net.layers[layer].length*50+5;
+						//console.log(x,y,w,h);
+						if (thisVar.net.layers[layer][0] instanceof Net.InputNeuron){
+
 						}
-						width = 50 * timeDelayed + 5;
-						ctx.rect(x1, y2, 55, h1);
+						ctx.rect(x, y, w, h);
 						ctx.stroke();
-						ctx.rect(px1, py2, width!, height!);
-						ctx.stroke();
-						ctx.beginPath();
-						ctx.moveTo(x1, y2 + h1);
-						ctx.lineTo(px1, py2);
-						ctx.moveTo(x1 + 55, y2 + h1);
-						ctx.lineTo(px1 + width!, py2);
-						ctx.stroke();
+						if (lastY!=undefined && lastW!=undefined)
+						{
+							ctx.beginPath();
+							ctx.moveTo(x, y+55);
+							ctx.lineTo(x+lastW, lastY);
+							ctx.moveTo(x+w, y+55);
+							ctx.lineTo(x, lastY);
+							ctx.stroke();
+						}
+						lastW=w;
+						lastY=y;
 					}
-					// ctx.rect(x1, y2, 55, h1);
-					// ctx.stroke();
-					// ctx.rect(px1, py2, width!, height!);
-					// ctx.stroke();
-					// ctx.beginPath();
-					// ctx.moveTo(x1, y2 + h1);
-					// ctx.lineTo(px1, py2);
-					// ctx.moveTo(x1 + 55, y2 + h1);
-					// ctx.lineTo(px1 + width!, py2);
-					// ctx.stroke();
+						// ctx.rect(x1, y2, 55, h1);
+						// ctx.stroke();
+						// ctx.rect(px1, py2, width!, height!);
+						// ctx.stroke();
+						// ctx.beginPath();
+						// ctx.moveTo(x1, y2 + h1);
+						// ctx.lineTo(px1, py2);
+						// ctx.moveTo(x1 + 55, y2 + h1);
+						// ctx.lineTo(px1 + width!, py2);
+						// ctx.stroke();
 				});
+			}
 		}
+		this.graph.redraw();
 		this.nodes.update(update.nodes);
 		this.nodes.flush();
 		this.graph.stabilize();
@@ -293,6 +339,213 @@ export default class TDNNGraph implements Visualization {
 		// this.graph.stabilize();
 	}
 	onHide() {}
+	parseDataWithoutWeightSharing(net: Net.NeuralNet){
+		let thisVar=this;
+		this.graph.on("afterDrawing", function(ctx: any) {
+			ctx.lineWidth = "6";
+			ctx.strokeStyle = "red";
+			for (let layer=0;layer<thisVar.net.layers.length;layer++)
+			{
+				var x = -30;
+				var y = thisVar.minYofLayer[layer]-30;
+				var h = thisVar.net.layers[layer][0] instanceof Net.InputNeuron?50 * thisVar.net.layers[layer].length + 5:55;
+				var w = thisVar.net.layers[layer][0] instanceof Net.InputNeuron?50 * thisVar.net.layers[layer][0].outputVector!.length + 5:thisVar.net.layers[layer].length*50+5;
+				ctx.rect(x, y, w, h);
+				ctx.stroke();
+				ctx.beginPath();
+				ctx.moveTo(x, y);
+				ctx.lineTo(x-100, y+100);
+				ctx.stroke();
+			}
+		});
+		this.xyToConnectionTDNN = {};
+		const data: Point3d[] = [];
+		let maxy = 0;
+		let boxSize = 50;
+		let lastUpdate = 1;
+		//if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass) {
+		this.minYofLayer={};
+		this.updates = [
+			{ nodes: [], currentTime: 0, layerNumber: 0, layersUpdate: {} }
+		];
+		this.createForwardPassStep();
+		//}
+		lastUpdate = 1;
+		this.maxHeight = Math.max.apply(
+			null,
+			net.layers.map(layer => layer.length * boxSize)
+		);
+		// if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass)
+			this.nodes.clear();
+		try {
+			for (let outputLayer = 0; outputLayer < net.layers.length; outputLayer++) {
+				const layer = net.layers[outputLayer];
+				const layerY = maxy + this.offsetBetweenLayers * boxSize;
+				let maxValue = 0;
+				let minValue = 9999999999999;
+				for (let i = 0; i < layer.length; i++) {
+					for (let j = 0; j < layer[i].outputVector.length; j++) {
+						if (maxValue < layer[i].outputVector[j])
+							maxValue = layer[i].outputVector[j];
+						if (minValue > layer[i].outputVector[j])
+							minValue = layer[i].outputVector[j];
+					}
+				}
+				for (let outputNeuron = 0;outputNeuron < layer.length;outputNeuron++) {
+					const outN = layer[outputNeuron];
+					if (outN instanceof Net.InputNeuron)
+						maxy = Math.max(maxy, layerY + layer.length * boxSize);
+					else
+						maxy = Math.max(maxy, layerY + boxSize*2);
+					if (outN instanceof Net.OutputNeuron) { // Output Neuron
+						let p = {
+							x: outputNeuron * boxSize,
+							y: layerY + boxSize,
+							z: 0
+						};
+						if (this.maxHeight != layer.length * boxSize) {
+							p.y += (this.maxHeight - layer.length) / 2;
+						}
+						let node = {
+							id: outN.id * 1000 + outputNeuron,
+							size: boxSize/2,
+							shape: "square",
+							color: { background: "orange" }, // + ((p.z-minValue)/(maxValue-minValue)).toFixed(1),
+							title: "" + p.z.toFixed(2),
+							x: p.x,
+							y: -p.y
+						};
+						this.nodes.add(node);
+						this.updates[0].nodes.push(node);
+						var tmpMinY;
+						if (this.minYofLayer[outputLayer] == undefined)
+							tmpMinY = 99999999;
+						else tmpMinY = this.minYofLayer[outputLayer];
+						if (node.y < tmpMinY)
+							this.minYofLayer[outputLayer] = node.y;
+						data.push(p);
+						this.xyToConnectionTDNN[p.x + "," + p.y] = [
+							outN.id,
+							0,
+							outN.output
+						];
+					} else {
+						if (outN instanceof Net.InputNeuron){
+							for (let timeStep = 0;timeStep < outN.outputVector.length;timeStep++) {
+								const output =
+									outN.outputVector[timeStep] == null
+										? 0
+										: outN.outputVector[timeStep];
+								let p = {
+									x: timeStep * boxSize,
+									y: layerY + outputNeuron * boxSize,
+									z: output
+								};
+								if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass && !(outN instanceof Net.InputNeuron))
+									p.z = 0;
+								if (this.maxHeight != layer.length) {
+									p.y += (this.maxHeight - layer.length) / 2;
+								}
+								let node = {
+									id: outN.id * 1000 + timeStep,
+									size: boxSize / 2,
+									shape: "square",
+									color: {
+										background:
+											"rgba(0,0,0," +
+											(
+												(p.z - minValue) /
+												(maxValue - minValue)
+											).toFixed(1) +
+											")"
+									},
+									title: "" + p.z.toFixed(2),
+									x: p.x,
+									y: -p.y
+								};
+								data.push(p);
+								if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass) {
+									this.nodes.add(node);
+									this.updates[0].nodes.push(node);
+									this.minYofLayer[outputLayer]=node.y;
+									//this.updates[0].layerNumber
+								} else {
+									var tmpMinY;
+									this.updates[0].nodes.push(node);
+									if (this.minYofLayer[outputLayer] == undefined)
+										tmpMinY = 99999999;
+									else tmpMinY = this.minYofLayer[outputLayer];
+									if (node.y < tmpMinY)
+										this.minYofLayer[outputLayer] = node.y;
+								}
+								this.xyToConnectionTDNN[p.x + "," + p.y] = [
+									outN.id,
+									timeStep,
+									output
+								];
+							}
+						}else{
+							const output = 0;
+							let p = {
+								x: outputNeuron *boxSize,
+								y: layerY + boxSize,
+								z: output
+							};
+							if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass && !(outN instanceof Net.InputNeuron))
+								p.z = 0;
+							if (this.maxHeight != layer.length) {
+								p.y += (this.maxHeight - layer.length) / 2;
+							}
+							let node = {
+								id: outN.id * 1000+outN.id,
+								size: boxSize/2,
+								shape: "square",
+								color: {
+									background: "black"
+								},
+								title: "" + p.z.toFixed(2),
+								x: p.x,
+								y: -p.y
+							};
+							data.push(p);
+							if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass) {
+								this.nodes.add(node);
+								this.updates[0].nodes.push(node);
+								this.minYofLayer[outputLayer]=node.y;
+							} else {
+								var tmpMinY;
+								this.updates[0].nodes.push(node);
+								if (this.minYofLayer[outputLayer] == undefined)
+									tmpMinY = 99999999;
+								else tmpMinY = this.minYofLayer[outputLayer];
+								if (node.y < tmpMinY)
+									this.minYofLayer[outputLayer] = node.y;
+							}
+							this.xyToConnectionTDNN[p.x + "," + p.y] = [
+								outN.id,
+								0,
+								output
+							];
+						}
+					}
+				}
+				if (layer[0] instanceof Net.OutputNeuron)
+					lastUpdate += layer.length;
+				else {
+					if (layer[0] instanceof Net.TimeDelayedNeuron)
+						lastUpdate += layer[0].timeDelayed + 1; //layer[0].outputVector.length;
+				}
+			}
+		} catch (e) {
+			console.log(e);
+		}
+		//let thisVar = this;
+		this.updates[0].numberofneuron = this.net.layers[0].length;
+		this.nodes.flush();
+		this.graph.fit();
+
+		return data;
+	}
 	/** parse network layout into weights graph ordering */
 	maxHeight = 0;
 	parseData(net: Net.NeuralNet) {
@@ -302,13 +555,17 @@ export default class TDNNGraph implements Visualization {
 		let maxy = 0;
 		let boxSize = 50;
 		let lastUpdate = 1;
+		if (!net.weightSharing)
+		{
+			return this.parseDataWithoutWeightSharing(net);
+		}
+		this.minYofLayer={};
 		if (!this.calculatedNetwork && !this.currentlyDisplayingForwardPass) {
 			this.updates = [
 				{ nodes: [], currentTime: 0, layerNumber: 0, layersUpdate: {} }
 			];
 			this.createForwardPassStep();
 		}
-
 		lastUpdate = 1;
 		this.maxHeight = Math.max.apply(
 			null,
@@ -454,11 +711,7 @@ export default class TDNNGraph implements Visualization {
 						];
 						// nodeID++;
 					} else {
-						for (
-							let timeStep = 0;
-							timeStep < outN.outputVector.length;
-							timeStep++
-						) {
+						for (let timeStep = 0;timeStep < outN.outputVector.length;timeStep++) {
 							// if (this.calculatedNetwork)
 							// 	if (timeStep!=this.currentNeuron)
 							// 	{
@@ -469,10 +722,7 @@ export default class TDNNGraph implements Visualization {
 							// 		continue;
 							// 	}
 
-							const output =
-								outN.outputVector[timeStep] == null
-									? 0
-									: outN.outputVector[timeStep];
+							const output =outN.outputVector[timeStep] == null? 0 : outN.outputVector[timeStep];
 							let p = {
 								x: timeStep * boxSize,
 								y: layerY + outputNeuron * boxSize,
@@ -663,7 +913,7 @@ export default class TDNNGraph implements Visualization {
 
 	onNetworkLoaded(net: Net.NeuralNet) {
 		// console.log("On network loaded TDNN");
-		if (!net.isTDNN)
+		if (!net.isTDNN )//|| !net.weightSharing)
 		{
 			this.actions = [];
 			return;
@@ -674,9 +924,16 @@ export default class TDNNGraph implements Visualization {
 		// 	this.alreadySetNet=true;
 		// }
 		this.net = net;
+		if (this.isDisabledWeightSharing!=!net.weightSharing)
+		{
+			this.isDisabledWeightSharing=!net.weightSharing;
+			this.calculatedNetwork=false;
+			this.currentlyDisplayingForwardPass=false;	
+		}
 		this.parseData(net);
 		//this.calculatedNetwork = true;
 		this.next = 0;
+		//console.log(this.updates);
 		this.applyUpdate(this.updates[this.next++]);
 		// let abc=[[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[0]];
 		// this.net.initTDNN(abc);
@@ -685,7 +942,7 @@ export default class TDNNGraph implements Visualization {
 	onFrame() {
 		// console.log("On frame TDNN");
 		// this.alreadySetNet = false;
-		if (!this.net.isTDNN) return;
+		if (!this.net.isTDNN || !this.net.weightSharing) return;
 		// console.log("OnFrame step 2");
 		this.calculatedNetwork = false;
 		this.graph.off("afterDrawing");

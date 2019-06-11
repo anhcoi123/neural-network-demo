@@ -4,7 +4,6 @@
 		"@types/highcharts": "^4.2.37",
 		"@types/jquery": "^2.0.33",
 		"@types/jquery-handsontable": "^0.0.29",
-		"@types/react": "^16.4.6",
 		"@types/react-dom": "^16.0.6",
 		"bootstrap": "^3.3.7",
 		"handsontable": "^0.28.3",
@@ -19,6 +18,7 @@
 		"webpack-bundle-analyzer": "^2.8.2"
 	},
 	"devDependencies": {
+		"@types/react": "^16.8.18",
 		"copy-webpack-plugin": "^4.0.1",
 		"css-loader": "^0.28.4",
 		"expose-loader": "^0.7.1",
