@@ -105,7 +105,7 @@ export namespace Net {
 		},
 		lrelu: {
 			f: x => (x > 0 ? x : x as number * 0.1),
-			df: x => (x <= 0 ? 0 : 1)
+			df: x => (x <= 0 ? 0.1 : 1)
 		},
 		// used for Rosenblatt Perceptron (df is fake and unimportant)
 		"threshold (≥ 0)": {
